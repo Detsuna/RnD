@@ -21,6 +21,7 @@
                 <ul><li>
                     <h4>Stuff</h4>
                     <ul>
+                        <li><a href="../../wiki/Python.Stuff.GeneralizedContinuedFractions">GeneralizedContinuedFractions</a></li>
                         <li><a href="../../wiki/Python.Stuff.Trampoline">Trampoline</a></li>
                     </ul>
                 </li></ul>
