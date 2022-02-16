@@ -12,7 +12,7 @@
                 <ul><li>
                     <h4>Stuff</h4>
                     <ul>
-                        <li><a href="./wiki/C%23.Stuff.FormatTest">FormatTest</a></li>
+                        <li><a href="../../wiki/C%23.Stuff.FormatTest">FormatTest</a></li>
                     </ul>
                 </li></ul>
             </li>
@@ -20,7 +20,7 @@
                 <ul><li>
                     <h4>Stuff</h4>
                     <ul>
-                        <li><a href="./wiki/Python.Stuff.Trampoline">Trampoline</a></li>
+                        <li><a href="../../wiki/Python.Stuff.Trampoline">Trampoline</a></li>
                     </ul>
                 </li></ul>
             </li>
