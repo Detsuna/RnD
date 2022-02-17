@@ -15,8 +15,8 @@ class Point() :
     def __rmul__(self, other) : return self.__imul__(other)
     def __iadd__(self, other) : return self.__imul__(other)
     def __imul__(self, other) : 
-        if isinstance(other, Point) : return (self.Curve | other.Curve).Dot(self, other)
-        elif isinstance(other, int) : return self.Curve.Ladder(other, self)
+        if isinstance(other, Point) : return (self.Curve | other.Curve).CheckHasPoint(self).CheckHasPoint(other).Dot(self, other)
+        elif isinstance(other, int) : return self.Curve.CheckHasPoint(self).Ladder(other, self)
 Point.Inf = Point.O = Point()
 
 
@@ -74,7 +74,7 @@ class EllipticCurve(ABC) :
             R = (R * b) % p
 
     @abstractmethod
-    def CheckHasPoint(self, P:Point) -> bool : raise NotImplementedError
+    def CheckHasPoint(self, P:Point) -> EllipticCurve : raise NotImplementedError
 
     @abstractmethod
     def Dot(self, P:Point=Point.O, Q:Point=Point.O) -> Point : raise NotImplementedError
@@ -104,12 +104,10 @@ class EllipticCurve(ABC) :
 
 class Weierstrass(EllipticCurve) :
     """ (y**2) % Prime = (x**3 + A*x + B) % Prime """
-    def CheckHasPoint(self, P:Point) -> bool : 
-        if (P==Point.O or P==self.G or ((P.y**2) % self.Prime == (P.x**3 + self.A*P.x + self.B) % self.Prime)) : return True
+    def CheckHasPoint(self, P:Point) -> EllipticCurve : 
+        if (P==Point.O or P==self.G or ((P.y**2) % self.Prime == (P.x**3 + self.A*P.x + self.B) % self.Prime)) : return self
         else : raise ValueError("point not on curve")
     def Dot(self, P:Point=Point.O, Q:Point=Point.O) -> Point : 
-        (self.CheckHasPoint(P) , self.CheckHasPoint(Q))
-
         if P==Point.O and Q==Point.O : return Point.Inf
         elif P==Point.O : return Q
         elif Q==Point.O : return P
@@ -131,12 +129,10 @@ class Weierstrass(EllipticCurve) :
 
 class Montgomery(EllipticCurve) : 
     """ (B*y**2) % Prime = (x**3 + A*x**2 + x) % Prime """
-    def CheckHasPoint(self, P:Point) -> bool :  
-        if (P==Point.O or P==self.G or (self.B*P.y**2) % self.Prime == (P.x**3 + self.A*P.x**2 + P.x) % self.Prime) : return True
+    def CheckHasPoint(self, P:Point) -> EllipticCurve : 
+        if (P==Point.O or P==self.G or (self.B*P.y**2) % self.Prime == (P.x**3 + self.A*P.x**2 + P.x) % self.Prime) : return self
         else : raise ValueError("point not on curve")
     def Dot(self, P:Point=Point.O, Q:Point=Point.O) -> Point : 
-        (self.CheckHasPoint(P) , self.CheckHasPoint(Q))
-
         if P==Point.O and Q==Point.O : return Point.Inf
         elif P==Point.O : return Q
         elif Q==Point.O : return P
@@ -151,11 +147,13 @@ class Montgomery(EllipticCurve) :
 
 class TwistedEdwards(EllipticCurve) : 
     """ (A*x**2 + y**2) % Prime = (1 + B*x**2*y**2) % Prime """
-    def CheckHasPoint(self, P:Point) -> bool : 
-        if (P==Point.O or P==self.G or (self.A*P.x**2 + P.y**2) % self.Prime == (1 + self.B*P.x**2*P.y**2) % self.Prime) : return True
+    def CheckHasPoint(self, P:Point) -> EllipticCurve : 
+        if (P==Point.O or P==self.G or (self.A*P.x**2 + P.y**2) % self.Prime == (1 + self.B*P.x**2*P.y**2) % self.Prime) : return self
         else : raise ValueError("point not on curve")
     def Dot(self, P:Point=Point.O, Q:Point=Point.O) -> Point : 
-        (self.CheckHasPoint(P) , self.CheckHasPoint(Q))
+        if P==Point.O and Q==Point.O : return Point.Inf
+        elif P==Point.O : return Q
+        elif Q==Point.O : return P
 
         R = Point(Curve=self)
         d = pow(1 - self.B * P.x * Q.x * P.y * Q.y, -1, self.Prime)
