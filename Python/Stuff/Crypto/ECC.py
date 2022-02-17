@@ -15,7 +15,9 @@ class Point() :
     def __rmul__(self, other) : return self.__imul__(other)
     def __iadd__(self, other) : return self.__imul__(other)
     def __imul__(self, other) : 
-        if isinstance(other, Point) : return (self.Curve | other.Curve).CheckHasPoint(self).CheckHasPoint(other).Dot(self, other)
+        if isinstance(other, Point) : 
+            if self==Point.O and other==Point.O : return Point.Inf
+            return (self.Curve | other.Curve).CheckHasPoint(self).CheckHasPoint(other).Dot(self, other)
         elif isinstance(other, int) : return self.Curve.CheckHasPoint(self).Ladder(other, self)
 Point.Inf = Point.O = Point()
 
@@ -80,20 +82,12 @@ class EllipticCurve(ABC) :
     def Dot(self, P:Point=Point.O, Q:Point=Point.O) -> Point : raise NotImplementedError
     def Ladder(self, x:int, P:Point) -> Point : 
         if x==0 : return Point.Inf
-        self.CheckHasPoint(P)
 
         R0 = Point.Inf
         R1 = P
-        count = 0
         for byt in [int(i, 2) for i in f"{x:b}"] : 
-            count =count +1
-            if byt==0 :
-                R1 = self.Dot(R0, R1)
-                R0 = self.Dot(R0, R0)
-            else : 
-                R0 = self.Dot(R0, R1)
-                R1 = self.Dot(R1, R1)
-        print(count)
+            if byt==0 : (R0, R1) = (self.Dot(R0, R0), self.Dot(R0, R1))
+            else : (R0, R1) = (self.Dot(R0, R1),self.Dot(R1, R1))
         return R0
 
     @abstractmethod
@@ -178,15 +172,12 @@ class ECC() :
 
 if __name__ == "__main__" : 
     prime = 17
-    p = Point(15, 13)
-    curve = Weierstrass(prime, 0, 7, G=p)
-    print(f"expected: {(1700 % (prime + 1))*curve.G}, actual:{1700*curve.G}", end="\n\n")
-    for _ in range(prime) : 
-        p *= curve.G
-        print(f"{p}")
-    # p = Point(10, 15)
-    # p = curve.CompressPoint(p)
-    # print(f"Compressed: {p}")
-    # p = curve.DecompressPoint(p)
-    # print(f"Decompressed: {p}")
+    curve = Weierstrass(prime, 0, 7, G=Point(15, 13))
+
+    print(f"O + O = {Point.O + Point.O}, O + P = {Point.O + curve.G}\n")
+
+    for i in range(prime+3) : print(f"{i*curve.G}")
+        
+    print(f"\nexpected: {curve.G + curve.G + curve.G + curve.G}, actual:{4*curve.G}")
+
     pass
