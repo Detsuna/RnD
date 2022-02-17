@@ -5,18 +5,8 @@ from abc import ABC, abstractmethod
 class Point() : 
     Inf = O = None
     def __init__(self, x:int=None, y:int=None, Curve:EllipticCurve=None) : (self.x, self.y, self.Curve) = (x, y, Curve)
-    def __repr__(self) -> str : return f"{self.__class__.__name__}({', '.join([f'{k}={v}' for (k,v) in vars(self).items()])})"
-
     def __eq__(self, other:object) -> bool : return (isinstance(other, Point) and self.x==other.x and self.y==other.y)
-
-    def __add__(self, other) : return self.__imul__(other)
-    def __mul__(self, other) : return self.__imul__(other)
-    def __radd__(self, other) : return self.__imul__(other)
-    def __rmul__(self, other) : return self.__imul__(other)
-    def __iadd__(self, other) : return self.__imul__(other)
-    def __imul__(self, other) : 
-        if isinstance(other, Point) : return (self.Curve | other.Curve).Dot(self, other)
-        elif isinstance(other, int) : return self.Curve.Ladder(other, self)
+    def __repr__(self) -> str : return f"{self.__class__.__name__}({', '.join([f'{k}={v}' for (k,v) in vars(self).items()])})"
 Point.Inf = Point.O = Point()
 
 
@@ -31,9 +21,6 @@ class EllipticCurve(ABC) :
 
         self.G.Curve = self
     def __repr__(self) -> str : return self.__class__.__name__
-
-    def __or__(self, other) : return self.__ror__(other)
-    def __ror__(self, other) : return self
 
     def _SqrtMod(self, n, p) : 
         """ https://en.wikipedia.org/wiki/Tonelli%E2%80%93Shanks_algorithm#The_algorithm """
@@ -74,27 +61,10 @@ class EllipticCurve(ABC) :
             R = (R * b) % p
 
     @abstractmethod
-    def CheckHasPoint(self, P:Point) -> bool : raise NotImplementedError
+    def HasPoint(self, P:Point) -> bool : raise NotImplementedError
 
     @abstractmethod
     def Dot(self, P:Point=Point.O, Q:Point=Point.O) -> Point : raise NotImplementedError
-    def Ladder(self, x:int, P:Point) -> Point : 
-        if x==0 : return Point.Inf
-        self.CheckHasPoint(P)
-
-        R0 = Point.Inf
-        R1 = P
-        count = 0
-        for byt in [int(i, 2) for i in f"{x:b}"] : 
-            count =count +1
-            if byt==0 :
-                R1 = self.Dot(R0, R1)
-                R0 = self.Dot(R0, R0)
-            else : 
-                R0 = self.Dot(R0, R1)
-                R1 = self.Dot(R1, R1)
-        print(count)
-        return R0
 
     @abstractmethod
     def CompressPoint(self, D:Point) :  raise NotImplementedError
@@ -104,19 +74,16 @@ class EllipticCurve(ABC) :
 
 class Weierstrass(EllipticCurve) :
     """ (y**2) % Prime = (x**3 + A*x + B) % Prime """
-    def CheckHasPoint(self, P:Point) -> bool : 
-        if (P==Point.O or P==self.G or ((P.y**2) % self.Prime == (P.x**3 + self.A*P.x + self.B) % self.Prime)) : return True
-        else : raise ValueError("point not on curve")
+    def HasPoint(self, P:Point) -> bool : return (P==Point.O or ((P.y**2) % self.Prime == (P.x**3 + self.A*P.x + self.B) % self.Prime))
     def Dot(self, P:Point=Point.O, Q:Point=Point.O) -> Point : 
-        (self.CheckHasPoint(P) , self.CheckHasPoint(Q))
-
         if P==Point.O and Q==Point.O : return Point.Inf
         elif P==Point.O : return Q
         elif Q==Point.O : return P
 
-        if P==Q and P.y!=0 : l = ((3 * P.x**2 + self.A) * pow(2 * P.y, -1, self.Prime)) % self.Prime 
-        elif P!=Q and P.x!=Q.x : l = ((Q.y - P.y) * pow(Q.x - P.x, -1, self.Prime)) % self.Prime
-        else : return Point.Inf
+        if P==Q : l = ((3 * P.x**2 + self.A) * pow(2 * P.y, -1, self.Prime)) % self.Prime
+        else : 
+            try : l = ((Q.y - P.y) * pow(Q.x - P.x, -1, self.Prime)) % self.Prime
+            except ValueError : return Point.Inf
 
         R = Point(Curve=self)
         R.x = (l**2 - P.x - Q.x) % self.Prime
@@ -131,12 +98,7 @@ class Weierstrass(EllipticCurve) :
 
 class Montgomery(EllipticCurve) : 
     """ (B*y**2) % Prime = (x**3 + A*x**2 + x) % Prime """
-    def CheckHasPoint(self, P:Point) -> bool :  
-        if (P==Point.O or P==self.G or (self.B*P.y**2) % self.Prime == (P.x**3 + self.A*P.x**2 + P.x) % self.Prime) : return True
-        else : raise ValueError("point not on curve")
     def Dot(self, P:Point=Point.O, Q:Point=Point.O) -> Point : 
-        (self.CheckHasPoint(P) , self.CheckHasPoint(Q))
-
         if P==Point.O and Q==Point.O : return Point.Inf
         elif P==Point.O : return Q
         elif Q==Point.O : return P
@@ -151,12 +113,7 @@ class Montgomery(EllipticCurve) :
 
 class TwistedEdwards(EllipticCurve) : 
     """ (A*x**2 + y**2) % Prime = (1 + B*x**2*y**2) % Prime """
-    def CheckHasPoint(self, P:Point) -> bool : 
-        if (P==Point.O or P==self.G or (self.A*P.x**2 + P.y**2) % self.Prime == (1 + self.B*P.x**2*P.y**2) % self.Prime) : return True
-        else : raise ValueError("point not on curve")
     def Dot(self, P:Point=Point.O, Q:Point=Point.O) -> Point : 
-        (self.CheckHasPoint(P) , self.CheckHasPoint(Q))
-
         R = Point(Curve=self)
         d = pow(1 - self.B * P.x * Q.x * P.y * Q.y, -1, self.Prime)
         R.x = ((P.x * Q.y + P.y * Q.x) * d) % self.Prime
@@ -182,10 +139,9 @@ if __name__ == "__main__" :
     prime = 17
     p = Point(15, 13)
     curve = Weierstrass(prime, 0, 7, G=p)
-    print(f"expected: {(1700 % (prime + 1))*curve.G}, actual:{1700*curve.G}", end="\n\n")
-    for _ in range(prime) : 
-        p *= curve.G
-        print(f"{p}")
+    for _ in range(prime + 1) : 
+        p = curve.Dot(curve.G, p)
+        print(f"{p}, {curve.HasPoint(p)}")
     # p = Point(10, 15)
     # p = curve.CompressPoint(p)
     # print(f"Compressed: {p}")
