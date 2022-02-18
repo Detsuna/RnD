@@ -84,13 +84,13 @@ class PiDigitGenerator(Stringify) :
         b = (lambda k : 0 if k==0 else (k + k - 1))
         super().__init__(a=a, b=b, **k)
 
+
 class ExponentialDigitGenerator(Stringify) : 
     def __init__(self, *_, z=1, **k) : 
         (x, y) = z if isinstance(z, (tuple, list)) else (z, 1)
         a = (lambda k : (2 * x) if k==1 else (x**2))
         b = (lambda k : 1 if k==0 else (2 * y - x) if k==1 else ((k * 4 - 2) * y))
         super().__init__(a=a, b=b, **k)
-
 
 class NaturalLogDigitGenerator(Stringify) : 
     def __init__(self, *_, z=1, **k) : 
@@ -105,11 +105,13 @@ class NaturalLogDigitGenerator(Stringify) :
         super().__init__(a=a, b=b, **k)
         if neg : self.digits.insert(0, "-")
 
-# class LogYofbaseXDigitGenerator(Stringify) : 
-#     def __init__(self, *_, z=1, **k) : 
-#         a = (lambda k : (2 * (z - 1)) if k==1 else -(((k - 1) * (z - 1))**2))
-#         b = (lambda k : 0 if k==0 else ((k + k - 1) * (2 + z - 1)))
-#         super().__init__(a=a, b=b, **k)
+
+class NthRootDigitGenerator(Stringify) : 
+    def __init__(self, *_, z=1, n=1,**k) : 
+        y = z - 1
+        a = (lambda k : (2 * y) if k==1 else -(((k - 1)**2 * n**2 - 1) * y**2))
+        b = (lambda k : 1 if k==0 else (n * (2 + y) - y) if k==1 else ((k + k - 1) * n * (2 + y)))
+        super().__init__(a=a, b=b, **k)
 
 
 if __name__ == "__main__" : 
@@ -155,4 +157,15 @@ if __name__ == "__main__" :
         print(f"ln(1/{i}): ", end="")
         g = NaturalLogDigitGenerator(z=(1,i), floatPointChar=".")
         for _ in range(100): print(next(g), end="")
+        print()
+
+    print(f"\nⁿ√z\n================")
+    for i in range(1 ,6) : 
+        print(f"{i}√{i}: ", end="")
+        g = NthRootDigitGenerator(z=i,n=i, floatPointChar=".")
+        for _ in range(47) : print(next(g), end="")
+        j=i**i
+        print(f", {f'{i}√{j}':>6}: ", end="")        
+        g = NthRootDigitGenerator(z=j,n=i, floatPointChar=".")
+        for _ in range(47) : print(next(g), end="")
         print()
