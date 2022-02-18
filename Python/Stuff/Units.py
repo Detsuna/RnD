@@ -53,3 +53,16 @@ class ReadableSize() :
             f"""{abs(self.value)/pow(self.format, mag):.2f}""",
             f"""{ReadableSize.Symbols[mag]}{"i" if self.format == ReadableSize.IEC else ""}"""
         ])
+
+if __name__ == "__main__" : 
+    n = ExponentNotation(43**21)
+    n.notation = ExponentNotation.Scientific
+    print(f"ExponentNotation(Scientific): {str(n).lower()}")
+    n.notation = ExponentNotation.Engineering
+    print(f"ExponentNotation(Engineering): {str(n).lower()}")
+
+    n = ReadableSize(1<<24)
+    n.format = ReadableSize.IEC
+    print(f"ReadableSize(IEC): {n}B")
+    n.format = ReadableSize.SI
+    print(f"ReadableSize(SI): {n}B")

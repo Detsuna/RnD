@@ -15,11 +15,13 @@
             </li>
             <li><h3>Python</h3><ul>
                 <li><h4>Stuff</h4><ul>
-                    <li><a href="../../wiki/Python.Stuff.GeneralizedContinuedFractions">GeneralizedContinuedFractions</a></li>
-                    <li><a href="../../wiki/Python.Stuff.Trampoline">Trampoline</a></li>
                     <li><h4>Crypto</h4><ul>
                         <li><a href="../../wiki/Python.Stuff.Crypto.RSA">RSA</a></li>
                     </ul></li>
+                    <li><a href="../../wiki/Python.Stuff.GeneralizedContinuedFractions">GeneralizedContinuedFractions</a></li>
+                    <li><a href="../../wiki/Python.Stuff.TimeZones">TimeZones</a></li>
+                    <li><a href="../../wiki/Python.Stuff.Trampoline">Trampoline</a></li>
+                    <li><a href="../../wiki/Python.Stuff.Units">Units</a></li>
                 </ul></li></ul>
             </li>
         </ul>

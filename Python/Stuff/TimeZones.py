@@ -17,3 +17,8 @@ class Local(datetime.tzinfo) :
         return Local.delta
     def tzname(self, dt) : 
         return Local.__name__
+
+if __name__ == "__main__" : 
+    epoch = datetime.datetime(1970,1,1).replace(tzinfo=UTC())
+    print(f"epoch:     {epoch.isoformat()}")
+    print(f"localised: {epoch.astimezone(Local()).isoformat()}")
