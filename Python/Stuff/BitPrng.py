@@ -1,5 +1,4 @@
 from math import log2
-from time import sleep
 
 
 class BitPrng() : 
