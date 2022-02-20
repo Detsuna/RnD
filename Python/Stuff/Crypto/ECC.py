@@ -5,9 +5,10 @@ from abc import ABC, abstractmethod
 class Point() : 
     Inf = O = None
     def __init__(self, x:int=None, y:int=None, Curve:EllipticCurve=None) : (self.x, self.y, self.Curve) = (x, y, Curve)
-    def __repr__(self) -> str : return f"{self.__class__.__name__}({', '.join([f'{k}={v}' for (k,v) in vars(self).items()])})"
+    def __repr__(self) -> str : return f"Point(x={self.x}, y={self.y})"
 
     def __eq__(self, other:object) -> bool : return (isinstance(other, Point) and self.x==other.x and self.y==other.y)
+    def __hash__(self) -> int : return (self.x, self.y).__hash__()
 
     def __add__(self, other) : return self.__imul__(other)
     def __mul__(self, other) : return self.__imul__(other)
@@ -30,9 +31,13 @@ class EllipticCurve(ABC) :
         self.G = G
         self.Order = Order # N
         self.Cofactor = Cofactor # N/R(Subgroups); esp TwistedEdwards(?) = 4(?)
+        
+        if self.G is not None : self.G.Curve = self
+    def __repr__(self) -> str : return f"{self.__class__.__name__}({', '.join([f'{k}={v}' for (k,v) in vars(self).items()])})"
 
-        self.G.Curve = self
-    def __repr__(self) -> str : return self.__class__.__name__
+    def __del__(self) : del self.__dict__
+    def __enter__(self) : return self
+    def __exit__(self, type, value, tb) : self.__del__()
 
     def __or__(self, other) : return self.__ror__(other)
     def __ror__(self, other) : return self
@@ -77,6 +82,16 @@ class EllipticCurve(ABC) :
 
     @abstractmethod
     def CheckHasPoint(self, P:Point) -> EllipticCurve : raise NotImplementedError
+    def GeneratePoints(self) -> list[Point] : 
+        points = set([Point.O, Point.Inf])
+        for x in range(self.Prime) : 
+            for y in range(self.Prime) : 
+                point = Point(x, y, self)
+                try : 
+                    self.CheckHasPoint(point)
+                    points.add(point)
+                except : pass
+        return list(points)
 
     @abstractmethod
     def Dot(self, P:Point=Point.O, Q:Point=Point.O) -> Point : raise NotImplementedError
@@ -87,13 +102,14 @@ class EllipticCurve(ABC) :
         R1 = P
         for byt in [int(i, 2) for i in f"{x:b}"] : 
             if byt==0 : (R0, R1) = (self.Dot(R0, R0), self.Dot(R0, R1))
-            else : (R0, R1) = (self.Dot(R0, R1),self.Dot(R1, R1))
+            else : (R0, R1) = (self.Dot(R0, R1), self.Dot(R1, R1))
         return R0
 
-    @abstractmethod
-    def CompressPoint(self, D:Point) :  raise NotImplementedError
-    @abstractmethod
-    def DecompressPoint(self, C:Point) -> Point : raise NotImplementedError
+    def CompressPoint(self, D:Point) -> Point : return Point(x=D.x, y=(D.y & 1))
+    def DecompressPoint(self, C:Point) -> Point : 
+        D = Point(x=C.x,  y=self._SqrtMod(pow(C.x, 3, self.Prime) + self.A * C.x + self.B, self.Prime))
+        if bool(C.y) != bool(D.y & 1) : D.y = self.Prime - D.y
+        return D
 
 
 class Weierstrass(EllipticCurve) :
@@ -115,12 +131,6 @@ class Weierstrass(EllipticCurve) :
         R.y = (l * (P.x - R.x) - P.y) % self.Prime
         return R
 
-    def CompressPoint(self, D:Point) : return Point(x=D.x, y=(D.y & 1))
-    def DecompressPoint(self, C:Point) : 
-        D = Point(x=C.x,  y=self._SqrtMod(pow(C.x, 3, self.Prime) + self.A * C.x + self.B, self.Prime))
-        if bool(C.y) != bool(D.y & 1) : D.y = self.Prime - D.y
-        return D
-
 class Montgomery(EllipticCurve) : 
     """ (B*y**2) % Prime = (x**3 + A*x**2 + x) % Prime """
     def CheckHasPoint(self, P:Point) -> EllipticCurve : 
@@ -131,8 +141,9 @@ class Montgomery(EllipticCurve) :
         elif P==Point.O : return Q
         elif Q==Point.O : return P
 
-        if P==Q : l = ((3 * P.x**2 + 2 * self.A + 1) * pow(2 * P.y, -1, self.Prime)) % self.Prime
-        else : l = ((Q.y - P.y) * pow(Q.x - P.x, -1, self.Prime)) % self.Prime
+        if P==Q and P.y!=0 : l = ((3 * P.x**2 + 2 * self.A * P.x + 1) * pow(2 * self.B * P.y, -1, self.Prime)) % self.Prime
+        elif P!=Q and P.x!=Q.x : l = ((Q.y - P.y) * pow(Q.x - P.x, -1, self.Prime)) % self.Prime
+        else : return Point.Inf
 
         R = Point(Curve=self)
         R.x = (self.B * l**2 - self.A - P.x - Q.x) % self.Prime
@@ -150,34 +161,51 @@ class TwistedEdwards(EllipticCurve) :
         elif Q==Point.O : return P
 
         R = Point(Curve=self)
-        d = pow(1 - self.B * P.x * Q.x * P.y * Q.y, -1, self.Prime)
-        R.x = ((P.x * Q.y + P.y * Q.x) * d) % self.Prime
-        R.y = ((P.y * Q.y - self.A * P.x * Q.x) * d) % self.Prime
+        R.x = ((P.x * Q.y + P.y * Q.x) * pow(1 + self.B * P.x * Q.x * P.y * Q.y, -1, self.Prime)) % self.Prime
+        R.y = ((P.y * Q.y - self.A * P.x * Q.x) * pow(1 - self.B * P.x * Q.x * P.y * Q.y, -1, self.Prime)) % self.Prime
         return R
 
 
-class ECC() : 
-    def __init__(self, Curve:EllipticCurve, D:int, Q:Point=None) : 
-        self.Curve = Curve
-        self.D = D
-        self.Q = Q
-    def __del__(self) : del self.__dict__
-    def __enter__(self) : return self
-    def __exit__(self, type, value, tb) : self.__del__()
-
-    def EnCrypt(self, p) : return self.Crypt(m=p, key=self.Exponent)
-    def DeCrypt(self, c) : return self.Crypt(m=c, key=self.D)
-    def Crypt(self, m, key) : pass 
-
-
 if __name__ == "__main__" : 
-    prime = 17
-    curve = Weierstrass(prime, 0, 7, G=Point(15, 13))
 
-    print(f"O + O = {Point.O + Point.O}, O + P = {Point.O + curve.G}\n")
+    """ https://cryptobook.nakov.com/asymmetric-key-ciphers/elliptic-curve-cryptography-ecc """
+    with Weierstrass(17, 0, 7, Point(15, 13), Order=18) as curve :         
+        actual = curve.G
+        for _ in range(100 - 1) : actual += curve.G
+        print(f"[{curve}] => expected:{curve.G*100}, actual:{actual}")
 
-    for i in range(prime+3) : print(f"{i*curve.G}")
-        
-    print(f"\nexpected: {curve.G + curve.G + curve.G + curve.G}, actual:{4*curve.G}")
+    with Montgomery(11, 7, 5) as curve : 
+        points = curve.GeneratePoints()
+        curve.Order = len(points)
 
-    pass
+        n = 0
+        for point in points : 
+            if point==Point.O : continue
+            m = len(set([i*point for i in range(curve.Order)]))
+            if m>n : 
+                n = m
+                curve.G = point
+            if curve.Order==m : break
+
+        actual = curve.G
+        for _ in range(100 - 1) : actual += curve.G
+        print(f"[{curve}] => expected:{curve.G*100}, actual:{actual}")    
+
+    with TwistedEdwards(13, 10, 6) as curve :
+        points = curve.GeneratePoints()
+        print(points)
+        curve.Order = len(points)
+
+        n = 0
+        for point in points : 
+            if point==Point.O : continue
+            m = len(set([i*point for i in range(curve.Order)]))
+            if m>n : 
+                n = m
+                curve.G = point
+            if curve.Order==m : break
+
+        actual = curve.G
+        for _ in range(100 - 1) : actual += curve.G
+        print(f"[{curve}] => expected:{curve.G*100}, actual:{actual}")    
+    
