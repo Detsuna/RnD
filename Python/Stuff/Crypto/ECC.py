@@ -106,10 +106,8 @@ class EllipticCurve(ABC) :
         return R0
 
     def CompressPoint(self, D:Point) -> Point : return Point(x=D.x, y=(D.y & 1))
-    def DecompressPoint(self, C:Point) -> Point : 
-        D = Point(x=C.x,  y=self._SqrtMod(pow(C.x, 3, self.Prime) + self.A * C.x + self.B, self.Prime))
-        if bool(C.y) != bool(D.y & 1) : D.y = self.Prime - D.y
-        return D
+    @abstractmethod
+    def DecompressPoint(self, C:Point) -> Point : raise NotImplementedError
 
 
 class Weierstrass(EllipticCurve) :
@@ -130,11 +128,15 @@ class Weierstrass(EllipticCurve) :
         R.x = (l**2 - P.x - Q.x) % self.Prime
         R.y = (l * (P.x - R.x) - P.y) % self.Prime
         return R
+    def DecompressPoint(self, C:Point) -> Point : 
+        D = Point(x=C.x,  y=self._SqrtMod(C.x**3 + self.A * C.x + self.B, self.Prime))
+        if bool(C.y) != bool(D.y & 1) : D.y = self.Prime - D.y
+        return D
 
 class Montgomery(EllipticCurve) : 
     """ (B*y**2) % Prime = (x**3 + A*x**2 + x) % Prime """
     def CheckHasPoint(self, P:Point) -> EllipticCurve : 
-        if (P==Point.O or P==self.G or (self.B*P.y**2) % self.Prime == (P.x**3 + self.A*P.x**2 + P.x) % self.Prime) : return self
+        if (P==Point.O or P==self.G or ((self.B*P.y**2) % self.Prime == (P.x**3 + self.A*P.x**2 + P.x) % self.Prime)) : return self
         else : raise ValueError("point not on curve")
     def Dot(self, P:Point=Point.O, Q:Point=Point.O) -> Point : 
         if P==Point.O and Q==Point.O : return Point.Inf
@@ -149,6 +151,10 @@ class Montgomery(EllipticCurve) :
         R.x = (self.B * l**2 - self.A - P.x - Q.x) % self.Prime
         R.y = ((2 * P.x + Q.x + self.A) * l - self.B * l**3 - P.y) % self.Prime
         return R
+    def DecompressPoint(self, C:Point) -> Point : 
+        D = Point(x=C.x,  y=self._SqrtMod((C.x**3 + self.A * C.x**2 + C.x) * pow(self.B, -1, self.Prime), self.Prime))
+        if bool(C.y) != bool(D.y & 1) : D.y = self.Prime - D.y
+        return D
 
 class TwistedEdwards(EllipticCurve) : 
     """ (A*x**2 + y**2) % Prime = (1 + B*x**2*y**2) % Prime """
@@ -164,17 +170,19 @@ class TwistedEdwards(EllipticCurve) :
         R.x = ((P.x * Q.y + P.y * Q.x) * pow(1 + self.B * P.x * Q.x * P.y * Q.y, -1, self.Prime)) % self.Prime
         R.y = ((P.y * Q.y - self.A * P.x * Q.x) * pow(1 - self.B * P.x * Q.x * P.y * Q.y, -1, self.Prime)) % self.Prime
         return R
-
+    def DecompressPoint(self, C:Point) -> Point : 
+        D = Point(x=C.x,  y=self._SqrtMod((self.A*C.x**2 - 1)* pow(self.B*C.x**2 - 1, -1, self.Prime), self.Prime))
+        if bool(C.y) != bool(D.y & 1) : D.y = self.Prime - D.y
+        return D
 
 if __name__ == "__main__" : 
-
-    """ https://cryptobook.nakov.com/asymmetric-key-ciphers/elliptic-curve-cryptography-ecc """
-    with Weierstrass(17, 0, 7, Point(15, 13), Order=18) as curve :         
+    with Weierstrass(17, 0, 7, Point(15, 13), Order=18) as curve : 
+        """ https://cryptobook.nakov.com/asymmetric-key-ciphers/elliptic-curve-cryptography-ecc """
         actual = curve.G
         for _ in range(100 - 1) : actual += curve.G
-        print(f"[{curve}] => expected:{curve.G*100}, actual:{actual}")
+        print(f"[{curve}] => expected:{curve.G*100}, actual:{actual}, compression:{curve.DecompressPoint(curve.CompressPoint(curve.G))}")
 
-    with Montgomery(11, 7, 5) as curve : 
+    with Montgomery(11, 5, 7) as curve : 
         points = curve.GeneratePoints()
         curve.Order = len(points)
 
@@ -189,11 +197,10 @@ if __name__ == "__main__" :
 
         actual = curve.G
         for _ in range(100 - 1) : actual += curve.G
-        print(f"[{curve}] => expected:{curve.G*100}, actual:{actual}")    
+        print(f"[{curve}] => expected:{curve.G*100}, actual:{actual}, compression:{curve.DecompressPoint(curve.CompressPoint(curve.G))}")   
 
     with TwistedEdwards(13, 10, 6) as curve :
         points = curve.GeneratePoints()
-        print(points)
         curve.Order = len(points)
 
         n = 0
@@ -207,5 +214,5 @@ if __name__ == "__main__" :
 
         actual = curve.G
         for _ in range(100 - 1) : actual += curve.G
-        print(f"[{curve}] => expected:{curve.G*100}, actual:{actual}")    
+        print(f"[{curve}] => expected:{curve.G*100}, actual:{actual}, compression:{curve.DecompressPoint(curve.CompressPoint(curve.G))}")    
     
