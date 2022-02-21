@@ -10,16 +10,18 @@ class Point() :
     def __eq__(self, other:object) -> bool : return (isinstance(other, Point) and self.x==other.x and self.y==other.y)
     def __hash__(self) -> int : return (self.x, self.y).__hash__()
 
-    def __add__(self, other) : return self.__imul__(other)
-    def __mul__(self, other) : return self.__imul__(other)
-    def __radd__(self, other) : return self.__imul__(other)
-    def __rmul__(self, other) : return self.__imul__(other)
-    def __iadd__(self, other) : return self.__imul__(other)
-    def __imul__(self, other) : 
-        if isinstance(other, Point) : 
-            if self==Point.O and other==Point.O : return Point.Inf
-            return (self.Curve | other.Curve).CheckHasPoint(self).CheckHasPoint(other).Dot(self, other)
-        elif isinstance(other, int) : return self.Curve.CheckHasPoint(self).Ladder(other, self)
+    def __add__(self, other) -> Point : return self.__iadd__(other)
+    def __radd__(self, other) -> Point : return self.__iadd__(other)
+    def __iadd__(self, other) -> Point : 
+        if not isinstance(other, Point) : return NotImplemented
+        if self==Point.O and other==Point.O : return Point.Inf
+        return (self.Curve | other.Curve).CheckHasPoint(self).CheckHasPoint(other).Dot(self, other)
+
+    def __mul__(self, other) -> Point : return self.__imul__(other)
+    def __rmul__(self, other) -> Point : return self.__imul__(other)
+    def __imul__(self, other) -> Point : 
+        if not isinstance(other, int) : return NotImplemented
+        return self.Curve.CheckHasPoint(self).Ladder(other, self)
 Point.Inf = Point.O = Point()
 
 
@@ -175,6 +177,7 @@ class TwistedEdwards(EllipticCurve) :
         if bool(C.y) != bool(D.y & 1) : D.y = self.Prime - D.y
         return D
 
+
 if __name__ == "__main__" : 
     with Weierstrass(17, 0, 7, Point(15, 13), Order=18) as curve : 
         """ https://cryptobook.nakov.com/asymmetric-key-ciphers/elliptic-curve-cryptography-ecc """
@@ -215,4 +218,3 @@ if __name__ == "__main__" :
         actual = curve.G
         for _ in range(100 - 1) : actual += curve.G
         print(f"[{curve}] => expected:{curve.G*100}, actual:{actual}, compression:{curve.DecompressPoint(curve.CompressPoint(curve.G))}")    
-    
