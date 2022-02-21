@@ -16,6 +16,7 @@
             <li><h3>Python</h3><ul>
                 <li><h4>Stuff</h4><ul>
                     <li><h4>Crypto</h4><ul>
+                        <li><a href="../../wiki/Python.Stuff.Crypto.ECC">ECC</a></li>
                         <li><a href="../../wiki/Python.Stuff.Crypto.RSA">RSA</a></li>
                     </ul></li>
                     <li><a href="../../wiki/Python.Stuff.BitPrng">BitPrng</a></li>
