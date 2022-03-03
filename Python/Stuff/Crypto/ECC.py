@@ -131,7 +131,7 @@ class Weierstrass(EllipticCurve) :
         R.y = (l * (P.x - R.x) - P.y) % self.Prime
         return R
     def DecompressPoint(self, C:Point) -> Point : 
-        D = Point(x=C.x,  y=self._SqrtMod(C.x**3 + self.A * C.x + self.B, self.Prime))
+        D = Point(x=C.x,  y=self._SqrtMod(C.x**3 + self.A * C.x + self.B, self.Prime), Curve=self)
         if bool(C.y) != bool(D.y & 1) : D.y = self.Prime - D.y
         return D
 
@@ -154,7 +154,7 @@ class Montgomery(EllipticCurve) :
         R.y = ((2 * P.x + Q.x + self.A) * l - self.B * l**3 - P.y) % self.Prime
         return R
     def DecompressPoint(self, C:Point) -> Point : 
-        D = Point(x=C.x,  y=self._SqrtMod((C.x**3 + self.A * C.x**2 + C.x) * pow(self.B, -1, self.Prime), self.Prime))
+        D = Point(x=C.x,  y=self._SqrtMod((C.x**3 + self.A * C.x**2 + C.x) * pow(self.B, -1, self.Prime), self.Prime), Curve=self)
         if bool(C.y) != bool(D.y & 1) : D.y = self.Prime - D.y
         return D
 
@@ -173,7 +173,7 @@ class TwistedEdwards(EllipticCurve) :
         R.y = ((P.y * Q.y - self.A * P.x * Q.x) * pow(1 - self.B * P.x * Q.x * P.y * Q.y, -1, self.Prime)) % self.Prime
         return R
     def DecompressPoint(self, C:Point) -> Point : 
-        D = Point(x=C.x,  y=self._SqrtMod((self.A*C.x**2 - 1)* pow(self.B*C.x**2 - 1, -1, self.Prime), self.Prime))
+        D = Point(x=C.x,  y=self._SqrtMod((self.A*C.x**2 - 1)* pow(self.B*C.x**2 - 1, -1, self.Prime), self.Prime), Curve=self)
         if bool(C.y) != bool(D.y & 1) : D.y = self.Prime - D.y
         return D
 
