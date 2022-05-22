@@ -13,15 +13,20 @@ namespace EMVCo.QR {
             IEnumerable<PropertyInfo> pis = this.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(delegate (PropertyInfo pi) {
                 return ((typeof(DataObject).IsAssignableFrom(pi.PropertyType) || pi.PropertyType.IsGenericType) && !String.Equals(pi.Name, nameof(Merchant.Presentation.cyclicRedundancyCheck), StringComparison.OrdinalIgnoreCase));
             });
+            IList<DataObject> dataObjects = new List<DataObject>();
             foreach (PropertyInfo pi in pis) {
                 if (pi.PropertyType.IsGenericType) {
                     IList list = (IList)pi.GetValue(this);
                     foreach (DataObject obj in list) {
-                        sb.Append(obj.ToPayload());
+                        dataObjects.Add(obj);
                     }
                 } else {
-                    sb.Append(((DataObject)pi.GetValue(this)).ToPayload());
+                    dataObjects.Add((DataObject)pi.GetValue(this));
                 }
+            }
+            dataObjects = dataObjects.OrderBy(delegate (DataObject obj) { return obj.id; }).ToList();
+            foreach (DataObject obj in dataObjects) {
+                sb.Append(obj.ToPayload());
             }
             if (this.presence == Presence.Optional && sb.Length == 0) { return String.Empty; }
 

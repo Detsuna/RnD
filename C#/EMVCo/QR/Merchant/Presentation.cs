@@ -30,7 +30,10 @@ namespace EMVCo.QR.Merchant {
 
         public override String ToPayload() {
             StringBuilder sb = new StringBuilder(base.ToPayload());
+            sb.Append(this.cyclicRedundancyCheck.ToPayload());
+            sb.Remove(sb.Length - 4, 4);
             this.cyclicRedundancyCheck.data = CRC16.CRC16CCITT(Encoding.ASCII.GetBytes(sb.ToString())).ToString("X4");
+            sb.Remove(sb.Length - 4, 4);
             sb.Append(this.cyclicRedundancyCheck.ToPayload());
             return sb.ToString();
         }
