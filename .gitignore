@@ -1,4 +1,16 @@
 #========================
+# OS
+#========================
+
+# Windows
+#------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+
+#========================
 # Shared
 #========================
 .vs
@@ -8,8 +20,22 @@
 #========================
 # C#
 #========================
+
+# user
+#------------
+*.suo
+*.user
+*.sln.docstates
+
+# Proj
+#------------
+packages/
 [Bb]in/
 [Oo]bj/
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
 
 
 #========================
