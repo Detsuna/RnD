@@ -37,12 +37,10 @@ class Polynomial(Number, defaultdict['Polynomial.VariablesExponents', int]) :
             return False
         def __le__(self, other) : return self.__eq__(other) | self.__lt__(other)
 
-
         def __add__(self, other) :
             result = dict(self) | dict(other)
             for k in result : result[k] = (Polynomial.VariablesExponents(self)[k] + Polynomial.VariablesExponents(other)[k])
             return Polynomial.VariablesExponents(result)
-
         def __sub__(self, other) :
             result = dict(self) | dict(other)
             for k in result : result[k] = (Polynomial.VariablesExponents(self)[k] - Polynomial.VariablesExponents(other)[k])
@@ -75,31 +73,21 @@ class Polynomial(Number, defaultdict['Polynomial.VariablesExponents', int]) :
         result = Polynomial(result)
         if len(result)==1 and const in result : return result[const]
         else : return result
-
     
     def __add__(self, other) : 
         result = Polynomial(self)
         for k in other : result[k] = (result[k] + other[k])
         return Polynomial(result)
-    def __radd__(self, other) : return self.__add__(other)
-    def __iadd__(self, other) : return self.__add__(other)
-
     def __sub__(self, other) : 
         result = Polynomial(self)
         for k in other : result[k] = (result[k] - other[k])
         return Polynomial(result)
-    def __rsub__(self, other) : return self.__sub__(other)
-    def __isub__(self, other) : return self.__sub__(other)
-
     def __mul__(self, other) :
         result = Polynomial()
         for s in list(self) : 
             for o in list(other) : 
                 result[s+o] = (result[s+o] + (self[s] * other[o]))
         return Polynomial(result)
-    def __rmul__(self, other) : return self.__mul__(other)
-    def __imul__(self, other) : return self.__mul__(other)
-
     def __truediv__(self, other) : 
         quotient, remainder, divisorMaxKey = Polynomial(), Polynomial(self), sorted(other, reverse=True)[0]
 
